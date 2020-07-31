@@ -9,10 +9,11 @@ package gcron
 import (
 	"errors"
 	"fmt"
-	"github.com/gogf/gf/os/gtime"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gogf/gf/os/gtime"
 
 	"github.com/gogf/gf/text/gregex"
 )
@@ -32,7 +33,11 @@ type cronSchedule struct {
 
 const (
 	// regular expression for cron pattern, which contains 6 parts of time units.
-	gREGEX_FOR_CRON = `^([\-/\d\*\?,]+)\s+([\-/\d\*\?,]+)\s+([\-/\d\*\?,]+)\s+([\-/\d\*\?,]+)\s+([\-/\d\*\?,A-Za-z]+)\s+([\-/\d\*\?,A-Za-z]+)$`
+	gREGEX_FOR_CRON = `^([\-/\d\*\?,]+)\s+([\-/\d\*\?,]+)\s+([\-/\d\*\?,]+)\s+((?:L|[\-/\d\*\?,]+)W?)\s+([\-/\d\*\?,A-Za-z]+)\s+([\-/\d\*\?,A-Za-z]+)$`
+	// 最后的 标志
+	FLAG_LAST = 0x100
+	// 工作日 标志
+	FLAG_WORKDAY = 0x200
 )
 
 var (
@@ -175,6 +180,9 @@ func parseItem(item string, min int, max int, allowQuestionMark bool) (map[int]s
 			case 12:
 				// It's checking month field.
 				fieldType = 'm'
+			case 31:
+				// It's checking day field.
+				fieldType = 'd'
 			}
 			// Eg: */5
 			if rangeArray[0] != "*" {
@@ -219,6 +227,22 @@ func parseItemValue(value string, fieldType byte) (int, error) {
 			if i, ok := weekMap[strings.ToLower(value)]; ok {
 				return i, nil
 			}
+		case 'd':
+			i := 0
+			for n := 0; n < len(value); n++ {
+				b := value[n]
+				switch {
+				case b >= '0' && b <= '9':
+					i *= 10
+					i += int(b - '0')
+				case b == 'L':
+					i |= FLAG_LAST
+				case b == 'W':
+					i |= FLAG_WORKDAY
+				}
+			}
+			return i, nil
+
 		}
 	}
 	return 0, errors.New(fmt.Sprintf(`invalid pattern value: "%s"`, value))
@@ -245,7 +269,53 @@ func (s *cronSchedule) meet(t time.Time) bool {
 			return false
 		}
 		if _, ok := s.day[t.Day()]; !ok {
-			return false
+			test := false
+			w := t.Weekday()
+			// 今天是否工作日
+			isWorkday := w > time.Sunday && w < time.Saturday
+			// 今天是否最后一天
+			isLastday := t.AddDate(0, 0, 1).Day() == 1
+
+			for v := range s.day {
+				// 无标志或者有工作日标志,但是今天不是工作日
+				if v < 0xff || (v&FLAG_WORKDAY > 0 && !isWorkday) {
+					continue
+				}
+
+				if (v & FLAG_LAST) > 0 { //last flag
+					if isLastday {
+						test = true
+					} else if v&FLAG_WORKDAY > 0 && w == time.Friday && t.AddDate(0, 0, 3).Day() < 3 {
+						test = true
+					}
+				} else { // 指定日期最近的工作日
+					// 思路
+					// 1. 指定日期就是工作日的情况
+					// 2. 指定日期非工作日的情况分两种.
+					//    1). 指定日期是星期六 往前推一天 最近的工作日就是 星期五
+					//        如果指定日期是1号  往前推二天 最近的工作日就是 星期一
+					//    2). 指定日期是星期日 往后推一天 最近的工作日就是 星期一
+					//        如果指定日期是月底 往后推二天 最近的工作日是 星期五
+					day := v & 0xff
+					toDay := t.Day()
+					// 今天和指定日期的差异
+					daydiff := toDay - day
+					switch {
+					case day == toDay:
+						test = true
+					case w == time.Monday:
+						test = daydiff > 0 && (daydiff == 1 || (daydiff == 2 && toDay == 3))
+					case w == time.Friday:
+						test = daydiff < 0 && (daydiff == -1 || (daydiff == -2 && t.AddDate(0, 0, 3).Day() == 1))
+					}
+				}
+				if test {
+					break
+				}
+			}
+			if test == false {
+				return false
+			}
 		}
 		if _, ok := s.month[int(t.Month())]; !ok {
 			return false
