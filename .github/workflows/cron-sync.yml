@@ -1,0 +1,17 @@
+name: 定时更新上游源码
+
+on:
+  schedule:
+  - cron: "30 1 * * *"
+jobs:
+  repo-sync:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: repo-sync
+      uses: repo-sync/github-sync@master
+      with:
+        source_repo: "https://github.com/gogf/gf.git"
+        source_branch: "master"
+        destination_branch: "upstream"
+        github_token: ${{ secrets.GITHUB_TOKEN }}
