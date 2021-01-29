@@ -7,9 +7,12 @@
 package gredis
 
 import (
+	"context"
 	"errors"
 	"github.com/gogf/gf/container/gvar"
 	"github.com/gogf/gf/internal/json"
+	"github.com/gogf/gf/net/gtrace"
+	"github.com/gogf/gf/os/gtime"
 	"github.com/gogf/gf/util/gconv"
 	"github.com/gomodule/redigo/redis"
 	"reflect"
@@ -52,7 +55,26 @@ func (c *Conn) do(timeout time.Duration, commandName string, args ...interface{}
 		}
 		return conn.DoWithTimeout(timeout, commandName, args...)
 	}
-	return c.Conn.Do(commandName, args...)
+	timestampMilli1 := gtime.TimestampMilli()
+	reply, err = c.Conn.Do(commandName, args...)
+	timestampMilli2 := gtime.TimestampMilli()
+
+	// Tracing.
+	if gtrace.IsActivated(c.ctx) {
+		c.addTracingItem(&tracingItem{
+			err:         err,
+			commandName: commandName,
+			arguments:   args,
+			costMilli:   timestampMilli2 - timestampMilli1,
+		})
+	}
+	return
+}
+
+// Ctx is a channing function which sets the context for next operation.
+func (c *Conn) Ctx(ctx context.Context) *Conn {
+	c.ctx = ctx
+	return c
 }
 
 // Do sends a command to the server and returns the received reply.
