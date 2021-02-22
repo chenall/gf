@@ -15,7 +15,6 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/label"
-	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 	"io/ioutil"
 	"net/http"
@@ -24,6 +23,7 @@ import (
 
 const (
 	tracingMaxContentLogSize        = 512 * 1024 // Max log size for request and response body.
+	tracingInstrumentName           = "github.com/gogf/gf/net/ghttp.Client"
 	tracingAttrHttpAddressRemote    = "http.address.remote"
 	tracingAttrHttpAddressLocal     = "http.address.local"
 	tracingAttrHttpDnsStart         = "http.dns.start"
@@ -32,6 +32,7 @@ const (
 	tracingAttrHttpConnectDone      = "http.connect.done"
 	tracingEventHttpRequest         = "http.request"
 	tracingEventHttpRequestHeaders  = "http.request.headers"
+	tracingEventHttpRequestBaggage  = "http.request.baggage"
 	tracingEventHttpRequestBody     = "http.request.body"
 	tracingEventHttpResponse        = "http.response"
 	tracingEventHttpResponseHeaders = "http.response.headers"
@@ -40,21 +41,14 @@ const (
 
 // MiddlewareTracing is a client middleware that enables tracing feature using standards of OpenTelemetry.
 func MiddlewareTracing(c *Client, r *http.Request) (response *Response, err error) {
-	tr := otel.GetTracerProvider().Tracer(
-		"github.com/gogf/gf/net/ghttp.Client",
-		trace.WithInstrumentationVersion(fmt.Sprintf(`%s`, gf.VERSION)),
-	)
+	tr := otel.GetTracerProvider().Tracer(tracingInstrumentName, trace.WithInstrumentationVersion(gf.VERSION))
 	ctx, span := tr.Start(r.Context(), r.URL.String(), trace.WithSpanKind(trace.SpanKindClient))
 	defer span.End()
 
 	span.SetAttributes(gtrace.CommonLabels()...)
 
 	// Inject tracing content into http header.
-	propagator := propagation.NewCompositeTextMapPropagator(
-		propagation.TraceContext{},
-		propagation.Baggage{},
-	)
-	propagator.Inject(ctx, r.Header)
+	otel.GetTextMapPropagator().Inject(ctx, r.Header)
 
 	// Continue client handler executing.
 	response, err = c.Next(

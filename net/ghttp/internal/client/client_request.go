@@ -117,7 +117,7 @@ func (c *Client) DoRequest(method, url string, data ...interface{}) (resp *Respo
 	}
 
 	// Auto saving cookie content.
-	if c.browserMode && resp != nil {
+	if c.browserMode && resp != nil && resp.Response != nil {
 		now := time.Now()
 		for _, v := range resp.Response.Cookies() {
 			if !v.Expires.IsZero() && v.Expires.UnixNano() < now.UnixNano() {
@@ -278,10 +278,6 @@ func (c *Client) prepareRequest(method, url string, data ...interface{}) (req *h
 	// HTTP basic authentication.
 	if len(c.authUser) > 0 {
 		req.SetBasicAuth(c.authUser, c.authPass)
-	}
-	// Client agent.
-	if c.agent != "" {
-		req.Header.Set("User-Agent", c.agent)
 	}
 	return req, nil
 }

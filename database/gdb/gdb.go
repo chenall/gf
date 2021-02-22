@@ -291,7 +291,7 @@ var (
 
 func init() {
 	// allDryRun is initialized from environment or command options.
-	allDryRun = gcmd.GetWithEnv("gf.gdb.dryrun", false).Bool()
+	allDryRun = gcmd.GetOptWithEnv("gf.gdb.dryrun", false).Bool()
 }
 
 // Register registers custom database driver to gdb.
@@ -490,7 +490,7 @@ func (c *Core) getSqlDb(master bool, schema ...string) (sqlDb *sql.DB, err error
 	if node.Debug {
 		c.DB.SetDebug(node.Debug)
 	}
-	if node.Debug {
+	if node.DryRun {
 		c.DB.SetDryRun(node.DryRun)
 	}
 	return

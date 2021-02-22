@@ -19,6 +19,7 @@ import (
 )
 
 const (
+	tracingInstrumentName       = "github.com/gogf/gf/database/gdb"
 	tracingAttrDbType           = "db.type"
 	tracingAttrDbHost           = "db.host"
 	tracingAttrDbPort           = "db.port"
@@ -38,8 +39,8 @@ func (c *Core) addSqlToTracing(ctx context.Context, sql *Sql) {
 		return
 	}
 	tr := otel.GetTracerProvider().Tracer(
-		"github.com/gogf/gf/database/gdb",
-		trace.WithInstrumentationVersion(fmt.Sprintf(`%s`, gf.VERSION)),
+		tracingInstrumentName,
+		trace.WithInstrumentationVersion(gf.VERSION),
 	)
 	ctx, span := tr.Start(ctx, sql.Type, trace.WithSpanKind(trace.SpanKindInternal))
 	defer span.End()
