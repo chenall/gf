@@ -18,7 +18,7 @@ import (
 	"time"
 )
 
-// getModel creates and returns a cloned model of current model if <safe> is true, or else it returns
+// getModel creates and returns a cloned model of current model if `safe` is true, or else it returns
 // the current model.
 func (m *Model) getModel() *Model {
 	if !m.safe {
@@ -92,7 +92,7 @@ func (m *Model) doMappingAndFilterForInsertOrUpdateDataMap(data Map, allowOmitEm
 		return nil, err
 	}
 	// Remove key-value pairs of which the value is empty.
-	if allowOmitEmpty && m.option&OPTION_OMITEMPTY > 0 {
+	if allowOmitEmpty && m.option&OptionOmitEmpty > 0 {
 		tempMap := make(Map, len(data))
 		for k, v := range data {
 			if empty.IsEmpty(v) {
@@ -147,8 +147,8 @@ func (m *Model) doMappingAndFilterForInsertOrUpdateDataMap(data Map, allowOmitEm
 	return data, nil
 }
 
-// getLink returns the underlying database link object with configured <linkType> attribute.
-// The parameter <master> specifies whether using the master node if master-slave configured.
+// getLink returns the underlying database link object with configured `linkType` attribute.
+// The parameter `master` specifies whether using the master node if master-slave configured.
 func (m *Model) getLink(master bool) Link {
 	if m.tx != nil {
 		return m.tx.tx
@@ -196,9 +196,9 @@ func (m *Model) getPrimaryKey() string {
 }
 
 // formatCondition formats where arguments of the model and returns a new condition sql and its arguments.
-// Note that this function does not change any attribute value of the <m>.
+// Note that this function does not change any attribute value of the `m`.
 //
-// The parameter <limit1> specifies whether limits querying only one record if m.limit is not set.
+// The parameter `limit1` specifies whether limits querying only one record if m.limit is not set.
 func (m *Model) formatCondition(limit1 bool, isCountStatement bool) (conditionWhere string, conditionExtra string, conditionArgs []interface{}) {
 	if len(m.whereHolder) > 0 {
 		for _, v := range m.whereHolder {
@@ -206,7 +206,7 @@ func (m *Model) formatCondition(limit1 bool, isCountStatement bool) (conditionWh
 			case whereHolderWhere:
 				if conditionWhere == "" {
 					newWhere, newArgs := formatWhere(
-						m.db, v.where, v.args, m.option&OPTION_OMITEMPTY > 0,
+						m.db, v.where, v.args, m.option&OptionOmitEmpty > 0,
 					)
 					if len(newWhere) > 0 {
 						conditionWhere = newWhere
@@ -218,7 +218,7 @@ func (m *Model) formatCondition(limit1 bool, isCountStatement bool) (conditionWh
 
 			case whereHolderAnd:
 				newWhere, newArgs := formatWhere(
-					m.db, v.where, v.args, m.option&OPTION_OMITEMPTY > 0,
+					m.db, v.where, v.args, m.option&OptionOmitEmpty > 0,
 				)
 				if len(newWhere) > 0 {
 					if len(conditionWhere) == 0 {
@@ -233,7 +233,7 @@ func (m *Model) formatCondition(limit1 bool, isCountStatement bool) (conditionWh
 
 			case whereHolderOr:
 				newWhere, newArgs := formatWhere(
-					m.db, v.where, v.args, m.option&OPTION_OMITEMPTY > 0,
+					m.db, v.where, v.args, m.option&OptionOmitEmpty > 0,
 				)
 				if len(newWhere) > 0 {
 					if len(conditionWhere) == 0 {
@@ -268,7 +268,7 @@ func (m *Model) formatCondition(limit1 bool, isCountStatement bool) (conditionWh
 	// HAVING.
 	if len(m.having) > 0 {
 		havingStr, havingArgs := formatWhere(
-			m.db, m.having[0], gconv.Interfaces(m.having[1]), m.option&OPTION_OMITEMPTY > 0,
+			m.db, m.having[0], gconv.Interfaces(m.having[1]), m.option&OptionOmitEmpty > 0,
 		)
 		if len(havingStr) > 0 {
 			conditionExtra += " HAVING " + havingStr
@@ -302,7 +302,7 @@ func (m *Model) formatCondition(limit1 bool, isCountStatement bool) (conditionWh
 	return
 }
 
-// mergeArguments creates and returns new arguments by merging <m.extraArgs> and given <args>.
+// mergeArguments creates and returns new arguments by merging <m.extraArgs> and given `args`.
 func (m *Model) mergeArguments(args []interface{}) []interface{} {
 	if len(m.extraArgs) > 0 {
 		newArgs := make([]interface{}, len(m.extraArgs)+len(args))

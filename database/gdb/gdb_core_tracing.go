@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"github.com/gogf/gf"
 	"github.com/gogf/gf/net/gtrace"
+	"github.com/gogf/gf/os/gcmd"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/label"
@@ -33,9 +34,19 @@ const (
 	tracingEventDbExecutionType = "db.execution.type"
 )
 
+var (
+	// tracingInternal enables tracing for internal type spans.
+	// It's true in default.
+	tracingInternal = true
+)
+
+func init() {
+	tracingInternal = gcmd.GetOptWithEnv("gf.tracing.internal", true).Bool()
+}
+
 // addSqlToTracing adds sql information to tracer if it's enabled.
 func (c *Core) addSqlToTracing(ctx context.Context, sql *Sql) {
-	if !gtrace.IsActivated(ctx) {
+	if !tracingInternal || !gtrace.IsActivated(ctx) {
 		return
 	}
 	tr := otel.GetTracerProvider().Tracer(
@@ -51,24 +62,24 @@ func (c *Core) addSqlToTracing(ctx context.Context, sql *Sql) {
 	labels := make([]label.KeyValue, 0)
 	labels = append(labels, gtrace.CommonLabels()...)
 	labels = append(labels,
-		label.String(tracingAttrDbType, c.DB.GetConfig().Type),
+		label.String(tracingAttrDbType, c.db.GetConfig().Type),
 	)
-	if c.DB.GetConfig().Host != "" {
-		labels = append(labels, label.String(tracingAttrDbHost, c.DB.GetConfig().Host))
+	if c.db.GetConfig().Host != "" {
+		labels = append(labels, label.String(tracingAttrDbHost, c.db.GetConfig().Host))
 	}
-	if c.DB.GetConfig().Port != "" {
-		labels = append(labels, label.String(tracingAttrDbPort, c.DB.GetConfig().Port))
+	if c.db.GetConfig().Port != "" {
+		labels = append(labels, label.String(tracingAttrDbPort, c.db.GetConfig().Port))
 	}
-	if c.DB.GetConfig().Name != "" {
-		labels = append(labels, label.String(tracingAttrDbName, c.DB.GetConfig().Name))
+	if c.db.GetConfig().Name != "" {
+		labels = append(labels, label.String(tracingAttrDbName, c.db.GetConfig().Name))
 	}
-	if c.DB.GetConfig().User != "" {
-		labels = append(labels, label.String(tracingAttrDbUser, c.DB.GetConfig().User))
+	if c.db.GetConfig().User != "" {
+		labels = append(labels, label.String(tracingAttrDbUser, c.db.GetConfig().User))
 	}
-	if filteredLinkInfo := c.DB.FilteredLinkInfo(); filteredLinkInfo != "" {
-		labels = append(labels, label.String(tracingAttrDbLink, c.DB.FilteredLinkInfo()))
+	if filteredLinkInfo := c.db.FilteredLinkInfo(); filteredLinkInfo != "" {
+		labels = append(labels, label.String(tracingAttrDbLink, c.db.FilteredLinkInfo()))
 	}
-	if group := c.DB.GetGroup(); group != "" {
+	if group := c.db.GetGroup(); group != "" {
 		labels = append(labels, label.String(tracingAttrDbGroup, group))
 	}
 	span.SetAttributes(labels...)

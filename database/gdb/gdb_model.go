@@ -25,6 +25,8 @@ type Model struct {
 	tables        string         // Operation table names, which can be more than one table names and aliases, like: "user", "user u", "user u, user_detail ud".
 	fields        string         // Operation fields, multiple fields joined using char ','.
 	fieldsEx      string         // Excluded operation fields, multiple fields joined using char ','.
+	withArray     []interface{}  // Arguments for With feature.
+	withAll       bool           // Enable model association operations on all objects that have "with" tag in the struct.
 	extraArgs     []interface{}  // Extra custom arguments for sql.
 	whereHolder   []*whereHolder // Condition strings for where operation.
 	groupBy       string         // Used for "group by" statement.
@@ -53,65 +55,76 @@ type whereHolder struct {
 }
 
 const (
-	OPTION_OMITEMPTY  = 1
-	OPTION_ALLOWEMPTY = 2
-
-	linkTypeMaster   = 1
-	linkTypeSlave    = 2
-	whereHolderWhere = 1
-	whereHolderAnd   = 2
-	whereHolderOr    = 3
+	OPTION_OMITEMPTY  = 1 // Deprecated, use OptionOmitEmpty instead.
+	OPTION_ALLOWEMPTY = 2 // Deprecated, use OptionAllowEmpty instead.
+	OptionOmitEmpty   = 1
+	OptionAllowEmpty  = 2
+	linkTypeMaster    = 1
+	linkTypeSlave     = 2
+	whereHolderWhere  = 1
+	whereHolderAnd    = 2
+	whereHolderOr     = 3
 )
 
-// Table creates and returns a new ORM model from given schema.
-// The parameter <table> can be more than one table names, and also alias name, like:
-// 1. Table names:
-//    Table("user")
-//    Table("user u")
-//    Table("user, user_detail")
-//    Table("user u, user_detail ud")
-// 2. Table name with alias: Table("user", "u")
+// Table is alias of Core.Model.
+// See Core.Model.
+// Deprecated, use Model instead.
 func (c *Core) Table(table ...string) *Model {
+	return c.db.Model(table...)
+}
+
+// Model creates and returns a new ORM model from given schema.
+// The parameter `table` can be more than one table names, and also alias name, like:
+// 1. Model names:
+//    Model("user")
+//    Model("user u")
+//    Model("user, user_detail")
+//    Model("user u, user_detail ud")
+// 2. Model name with alias: Model("user", "u")
+func (c *Core) Model(table ...string) *Model {
 	tables := ""
 	if len(table) > 1 {
 		tables = fmt.Sprintf(
-			`%s AS %s`, c.DB.QuotePrefixTableName(table[0]), c.DB.QuoteWord(table[1]),
+			`%s AS %s`, c.db.QuotePrefixTableName(table[0]), c.db.QuoteWord(table[1]),
 		)
 	} else if len(table) == 1 {
-		tables = c.DB.QuotePrefixTableName(table[0])
-	} else {
-		panic("table cannot be empty")
+		tables = c.db.QuotePrefixTableName(table[0])
 	}
 	return &Model{
-		db:         c.DB,
+		db:         c.db,
 		tablesInit: tables,
 		tables:     tables,
 		fields:     "*",
 		start:      -1,
 		offset:     -1,
-		option:     OPTION_ALLOWEMPTY,
+		option:     OptionAllowEmpty,
 	}
 }
 
-// Model is alias of Core.Table.
-// See Core.Table.
-func (c *Core) Model(table ...string) *Model {
-	return c.DB.Table(table...)
+// With creates and returns an ORM model based on meta data of given object.
+func (c *Core) With(object interface{}) *Model {
+	return c.db.Model().With(object)
 }
 
-// Table acts like Core.Table except it operates on transaction.
-// See Core.Table.
+// Table is alias of tx.Model.
+// Deprecated, use Model instead.
 func (tx *TX) Table(table ...string) *Model {
-	model := tx.db.Table(table...)
+	return tx.Model(table...)
+}
+
+// Model acts like Core.Model except it operates on transaction.
+// See Core.Model.
+func (tx *TX) Model(table ...string) *Model {
+	model := tx.db.Model(table...)
 	model.db = tx.db
 	model.tx = tx
 	return model
 }
 
-// Model is alias of tx.Table.
-// See tx.Table.
-func (tx *TX) Model(table ...string) *Model {
-	return tx.Table(table...)
+// With acts like Core.With except it operates on transaction.
+// See Core.With.
+func (tx *TX) With(object interface{}) *Model {
+	return tx.Model().With(object)
 }
 
 // Ctx sets the context for current operation.
@@ -170,12 +183,12 @@ func (m *Model) Schema(schema string) *Model {
 func (m *Model) Clone() *Model {
 	newModel := (*Model)(nil)
 	if m.tx != nil {
-		newModel = m.tx.Table(m.tablesInit)
+		newModel = m.tx.Model(m.tablesInit)
 	} else {
-		newModel = m.db.Table(m.tablesInit)
+		newModel = m.db.Model(m.tablesInit)
 	}
 	*newModel = *m
-	// Deep copy slice attributes.
+	// Shallow copy slice attributes.
 	if n := len(m.extraArgs); n > 0 {
 		newModel.extraArgs = make([]interface{}, n)
 		copy(newModel.extraArgs, m.extraArgs)
@@ -183,6 +196,10 @@ func (m *Model) Clone() *Model {
 	if n := len(m.whereHolder); n > 0 {
 		newModel.whereHolder = make([]*whereHolder, n)
 		copy(newModel.whereHolder, m.whereHolder)
+	}
+	if n := len(m.withArray); n > 0 {
+		newModel.withArray = make([]interface{}, n)
+		copy(newModel.withArray, m.withArray)
 	}
 	return newModel
 }

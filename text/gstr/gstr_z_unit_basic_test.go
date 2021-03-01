@@ -295,6 +295,30 @@ func Test_Str(t *testing.T) {
 	})
 }
 
+func Test_StrEx(t *testing.T) {
+	gtest.C(t, func(t *gtest.T) {
+		t.Assert(gstr.StrEx("name@example.com", "@"), "example.com")
+		t.Assert(gstr.StrEx("name@example.com", ""), "")
+		t.Assert(gstr.StrEx("name@example.com", "z"), "")
+	})
+}
+
+func Test_StrTill(t *testing.T) {
+	gtest.C(t, func(t *gtest.T) {
+		t.Assert(gstr.StrTill("name@example.com", "@"), "name@")
+		t.Assert(gstr.StrTill("name@example.com", ""), "")
+		t.Assert(gstr.StrTill("name@example.com", "z"), "")
+	})
+}
+
+func Test_StrTillEx(t *testing.T) {
+	gtest.C(t, func(t *gtest.T) {
+		t.Assert(gstr.StrTillEx("name@example.com", "@"), "name")
+		t.Assert(gstr.StrTillEx("name@example.com", ""), "")
+		t.Assert(gstr.StrTillEx("name@example.com", "z"), "")
+	})
+}
+
 func Test_Shuffle(t *testing.T) {
 	gtest.C(t, func(t *gtest.T) {
 		t.Assert(len(gstr.Shuffle("123456")), 6)

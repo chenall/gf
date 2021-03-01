@@ -80,27 +80,35 @@ func Log(name ...string) *glog.Logger {
 	return gins.Log(name...)
 }
 
-// Database returns an instance of database ORM object with specified configuration group name.
+// Database is alias of DB.
+// See DB.
+// Deprecated, use DB instead.
 func Database(name ...string) gdb.DB {
 	return gins.Database(name...)
 }
 
-// DB is alias of Database.
-// See Database.
+// DB returns an instance of database ORM object with specified configuration group name.
 func DB(name ...string) gdb.DB {
 	return gins.Database(name...)
 }
 
 // Table is alias of Model.
-func Table(tables string, db ...string) *gdb.Model {
-	return DB(db...).Table(tables)
+// The database component is designed not only for
+// relational databases but also for NoSQL databases in the future. The name
+// "Table" is not proper for that purpose any more.
+// Deprecated, use Model instead.
+func Table(tables ...string) *gdb.Model {
+	return DB().Model(tables...)
 }
 
-// Model creates and returns a model from specified database or default database configuration.
-// The optional parameter <db> specifies the configuration group name of the database,
-// which is "default" in default.
-func Model(tables string, db ...string) *gdb.Model {
-	return DB(db...).Model(tables)
+// Model creates and returns a model based on configuration of default database group.
+func Model(tables ...string) *gdb.Model {
+	return DB().Model(tables...)
+}
+
+// With creates and returns an ORM model based on meta data of given object.
+func With(object interface{}) *gdb.Model {
+	return DB().With(object)
 }
 
 // Redis returns an instance of redis client with specified configuration group name.
