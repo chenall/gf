@@ -73,19 +73,36 @@ func New(file ...string) *Config {
 	} else {
 		// Dir path of main package.
 		if mainPath := gfile.MainPkgPath(); mainPath != "" && gfile.Exists(mainPath) {
-			_ = c.AddPath(mainPath)
+			if err := c.AddPath(mainPath); err != nil {
+				intlog.Error(err)
+			}
 		}
+
+		// Dir path of working dir.
+		if err := c.AddPath(gfile.Pwd()); err != nil {
+			intlog.Error(err)
+		}
+
 		// Dir path of binary.
 		if selfPath := gfile.SelfDir(); selfPath != "" && gfile.Exists(selfPath) {
-			_ = c.AddPath(selfPath)
+			if err := c.AddPath(selfPath); err != nil {
+				intlog.Error(err)
+			}
 		}
-		// Dir path of working dir.
-		_ = c.AddPath(gfile.Pwd())
 	}
 	return c
 }
 
+// getSearchPaths is used for checking and using `MainPkgPath` purpose.
+// As the `MainPkgPath` is retrieved only by main goroutine,
+// it should be checked multiple times when used in configuration file searching.
+// It only makes sense in source development environment.
 func (c *Config) getSearchPaths() []string {
+	// Custom configuration directory path.
+	if !gcmd.GetOptWithEnv(fmt.Sprintf("%s.path", cmdEnvKey)).IsEmpty() {
+		return c.searchPaths.Slice()
+	}
+
 	var (
 		searchPaths = c.searchPaths.Slice()
 		mainPkgPath = gfile.MainPkgPath()
@@ -392,13 +409,12 @@ func (c *Config) getJson(file ...string) *gjson.Json {
 				}
 			}
 			return j
-		} else {
-			if errorPrint() {
-				if filePath != "" {
-					glog.Criticalf(`[gcfg] Load config file "%s" failed: %s`, filePath, err.Error())
-				} else {
-					glog.Criticalf(`[gcfg] Load configuration failed: %s`, err.Error())
-				}
+		}
+		if errorPrint() {
+			if filePath != "" {
+				glog.Criticalf(`[gcfg] Load config file "%s" failed: %s`, filePath, err.Error())
+			} else {
+				glog.Criticalf(`[gcfg] Load configuration failed: %s`, err.Error())
 			}
 		}
 		return nil
