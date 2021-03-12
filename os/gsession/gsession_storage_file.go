@@ -7,7 +7,6 @@
 package gsession
 
 import (
-	"fmt"
 	"github.com/gogf/gf/container/gmap"
 	"github.com/gogf/gf/errors/gerror"
 	"github.com/gogf/gf/internal/intlog"
@@ -48,10 +47,10 @@ func NewStorageFile(path ...string) *StorageFile {
 	if len(path) > 0 && path[0] != "" {
 		storagePath, _ = gfile.Search(path[0])
 		if storagePath == "" {
-			panic(fmt.Sprintf("'%s' does not exist", path[0]))
+			panic(gerror.Newf("'%s' does not exist", path[0]))
 		}
 		if !gfile.IsWritable(storagePath) {
-			panic(fmt.Sprintf("'%s' is not writable", path[0]))
+			panic(gerror.Newf("'%s' is not writable", path[0]))
 		}
 	}
 	if storagePath != "" {
@@ -65,24 +64,26 @@ func NewStorageFile(path ...string) *StorageFile {
 		cryptoEnabled: DefaultStorageFileCryptoEnabled,
 		updatingIdSet: gset.NewStrSet(true),
 	}
-	// Batch updates the TTL for session ids timely.
-	gtimer.AddSingleton(DefaultStorageFileLoopInterval, func() {
-		//intlog.Print("StorageFile.timer start")
-		var (
-			id  string
-			err error
-		)
-		for {
-			if id = s.updatingIdSet.Pop(); id == "" {
-				break
-			}
-			if err = s.doUpdateTTL(id); err != nil {
-				intlog.Error(err)
-			}
-		}
-		//intlog.Print("StorageFile.timer end")
-	})
+
+	gtimer.AddSingleton(DefaultStorageFileLoopInterval, s.updateSessionTimely)
 	return s
+}
+
+// updateSessionTimely batch updates the TTL for sessions timely.
+func (s *StorageFile) updateSessionTimely() {
+	var (
+		id  string
+		err error
+	)
+	// Batch updating sessions.
+	for {
+		if id = s.updatingIdSet.Pop(); id == "" {
+			break
+		}
+		if err = s.updateSessionTTl(id); err != nil {
+			intlog.Error(err)
+		}
+	}
 }
 
 // SetCryptoKey sets the crypto key for session storage.
@@ -229,9 +230,9 @@ func (s *StorageFile) UpdateTTL(id string, ttl time.Duration) error {
 	return nil
 }
 
-// doUpdateTTL updates the TTL for session id.
-func (s *StorageFile) doUpdateTTL(id string) error {
-	intlog.Printf("StorageFile.doUpdateTTL: %s", id)
+// updateSessionTTL updates the TTL for specified session id.
+func (s *StorageFile) updateSessionTTl(id string) error {
+	intlog.Printf("StorageFile.updateSession: %s", id)
 	path := s.sessionFilePath(id)
 	file, err := gfile.OpenWithFlag(path, os.O_WRONLY)
 	if err != nil {
