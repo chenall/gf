@@ -11,12 +11,13 @@ package gconv
 
 import (
 	"fmt"
-	"github.com/gogf/gf/internal/json"
-	"github.com/gogf/gf/os/gtime"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gogf/gf/internal/json"
+	"github.com/gogf/gf/os/gtime"
 
 	"github.com/gogf/gf/encoding/gbinary"
 )
@@ -552,7 +553,7 @@ func Int64(any interface{}) int64 {
 		if f, ok := value.(apiInt64); ok {
 			return f.Int64()
 		}
-		s := String(value)
+		s := strings.TrimSpace(String(value))
 		isMinus := false
 		if len(s) > 0 {
 			if s[0] == '-' {
@@ -676,8 +677,8 @@ func Uint64(any interface{}) uint64 {
 	default:
 		if f, ok := value.(apiUint64); ok {
 			return f.Uint64()
-		}
-		s := String(value)
+    }
+		s := strings.TrimSpace(String(value))
 		// Hexadecimal
 		if len(s) > 2 && s[0] == '0' && (s[1] == 'x' || s[1] == 'X') {
 			if v, e := strconv.ParseUint(s[2:], 16, 64); e == nil {
