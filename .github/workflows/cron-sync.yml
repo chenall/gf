@@ -21,3 +21,4 @@ jobs:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         base: master
         head: upstream
+        merge_method: rebase
