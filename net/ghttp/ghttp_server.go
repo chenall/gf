@@ -268,7 +268,7 @@ func (s *Server) GetRouterArray() []RouterItem {
 					item.Middleware += gdebug.FuncName(v)
 				}
 			}
-			// If the domain does not exist in the dump map, it create the map.
+			// If the domain does not exist in the dump map, it creates the map.
 			// The value of the map is a custom sorted array.
 			if _, ok := m[item.Domain]; !ok {
 				// Sort in ASC order.

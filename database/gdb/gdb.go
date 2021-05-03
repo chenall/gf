@@ -32,12 +32,12 @@ type DB interface {
 	// Model creation.
 	// ===========================================================================
 
+	// Table function is deprecated, use Model instead.
 	// The DB interface is designed not only for
 	// relational databases but also for NoSQL databases in the future. The name
 	// "Table" is not proper for that purpose any more.
-	// Also see  Core.Table.
-	// Deprecated, use Model instead.
-	Table(table ...string) *Model
+	// Also see Core.Table.
+	Table(tableNameOrStruct ...interface{}) *Model
 
 	// Model creates and returns a new ORM model from given schema.
 	// The parameter `table` can be more than one table names, and also alias name, like:
@@ -48,7 +48,7 @@ type DB interface {
 	//    Model("user u, user_detail ud")
 	// 2. Model name with alias: Model("user", "u")
 	// Also see Core.Model.
-	Model(table ...string) *Model
+	Model(tableNameOrStruct ...interface{}) *Model
 
 	// Schema creates and returns a schema.
 	// Also see Core.Schema.
@@ -56,7 +56,7 @@ type DB interface {
 
 	// With creates and returns an ORM model based on meta data of given object.
 	// Also see Core.With.
-	With(object interface{}) *Model
+	With(objects ...interface{}) *Model
 
 	// Open creates a raw connection object for database with given node configuration.
 	// Note that it is not recommended using the this function manually.
@@ -191,6 +191,8 @@ type DB interface {
 	mappingAndFilterData(schema, table string, data map[string]interface{}, filter bool) (map[string]interface{}, error) // See Core.mappingAndFilterData.
 	convertFieldValueToLocalValue(fieldValue interface{}, fieldType string) interface{}                                  // See Core.convertFieldValueToLocalValue.
 	convertRowsToResult(rows *sql.Rows) (Result, error)                                                                  // See Core.convertRowsToResult.
+	addSqlToTracing(ctx context.Context, sql *Sql)                                                                       // See Core.addSqlToTracing.
+	writeSqlToLogger(v *Sql)                                                                                             // See Core.writeSqlToLogger.
 }
 
 // Core is the base struct for database management.
