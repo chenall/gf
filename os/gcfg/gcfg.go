@@ -273,6 +273,25 @@ func (c *Config) GetFilePath(file ...string) (path string, err error) {
 	if len(file) > 0 {
 		name = file[0]
 	}
+
+	c.autoCheckAndAddMainPkgPathToSearchPaths()
+	// Searching the file system.
+	c.searchPaths.RLockFunc(func(array []string) {
+		for _, prefix := range array {
+			prefix = gstr.TrimRight(prefix, `\/`)
+			if path, _ = gspath.Search(prefix, name); path != "" {
+				return
+			}
+			if path, _ = gspath.Search(prefix+gfile.Separator+"config", name); path != "" {
+				return
+			}
+		}
+	})
+
+	if path != "" {
+		return
+	}
+
 	// Searching resource manager.
 	if !gres.IsEmpty() {
 		for _, v := range resourceTryFiles {
@@ -292,19 +311,7 @@ func (c *Config) GetFilePath(file ...string) (path string, err error) {
 			}
 		})
 	}
-	c.autoCheckAndAddMainPkgPathToSearchPaths()
-	// Searching the file system.
-	c.searchPaths.RLockFunc(func(array []string) {
-		for _, prefix := range array {
-			prefix = gstr.TrimRight(prefix, `\/`)
-			if path, _ = gspath.Search(prefix, name); path != "" {
-				return
-			}
-			if path, _ = gspath.Search(prefix+gfile.Separator+"config", name); path != "" {
-				return
-			}
-		}
-	})
+
 	// If it cannot find the path of `file`, it formats and returns a detailed error.
 	if path == "" {
 		var (
