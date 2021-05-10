@@ -7,9 +7,10 @@
 package gconv
 
 import (
-	"github.com/gogf/gf/internal/json"
 	"reflect"
 	"strings"
+
+	"github.com/gogf/gf/internal/json"
 
 	"github.com/gogf/gf/internal/empty"
 	"github.com/gogf/gf/internal/utils"
@@ -301,7 +302,7 @@ func doMapConvertForMapOrStructValue(isRoot bool, value interface{}, recursive b
 						// It means this attribute field has desired tag.
 						dataMap[mapKey] = doMapConvertForMapOrStructValue(false, rvAttrInterface, true, tags...)
 					} else {
-						dataMap[mapKey] = doMapConvertForMapOrStructValue(false, rvAttrInterface, false, tags...)
+						dataMap[mapKey] = doMapConvertForMapOrStructValue(false, rvAttrInterface, recursive, tags...)
 					}
 
 				// The struct attribute is type of slice.
