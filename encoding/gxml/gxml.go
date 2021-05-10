@@ -10,7 +10,7 @@ package gxml
 import (
 	"strings"
 
-	"github.com/clbanning/mxj"
+	"github.com/clbanning/mxj/v2"
 	"github.com/gogf/gf/encoding/gcharset"
 	"github.com/gogf/gf/text/gregex"
 )
