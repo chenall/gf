@@ -9,6 +9,11 @@ package gdb
 import (
 	"bytes"
 	"fmt"
+	"reflect"
+	"regexp"
+	"strings"
+	"time"
+
 	"github.com/gogf/gf/errors/gerror"
 	"github.com/gogf/gf/internal/empty"
 	"github.com/gogf/gf/internal/json"
@@ -16,10 +21,6 @@ import (
 	"github.com/gogf/gf/os/gtime"
 	"github.com/gogf/gf/util/gmeta"
 	"github.com/gogf/gf/util/gutil"
-	"reflect"
-	"regexp"
-	"strings"
-	"time"
 
 	"github.com/gogf/gf/internal/structs"
 
@@ -235,7 +236,7 @@ func DataToMapDeep(value interface{}) map[string]interface{} {
 		name = ""
 		fieldTag = rtField.Tag
 		for _, tag := range structTagPriority {
-			if s := fieldTag.Get(tag); s != "" && gregex.IsMatchString(regularFieldNameWithoutDotRegPattern, s) {
+			if s := fieldTag.Get(tag); s != "" {
 				name = s
 				break
 			}
