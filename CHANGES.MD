@@ -33,13 +33,36 @@
   
   0 0 9 1W * ?  最个月初第一个工作日的9点整执行
 
+
 * `gview` 模板文件查找规则修改
   
   修改前: 配置文件指定的位置放在`最后`
   
   修改后: `优先`从配置文件指定的位置开始查找
+
   
 * `gcfg` 配置文件查找规则修改  
   修改前: `gres` 内置文件优先  
   修改后: 文件系统优先  
+
+
+* `gconv.Struct` 针对 int 类型允许通过标签 `base` 指定使用 10 进制进行转换
   
+  ```go
+  type TestInt struct {
+    I1 int `base:"10"`
+    I2 int `base:"10"`
+    I3 int `base:"10"`
+    I4 int `base:"10"`
+  }
+  
+  func Test_ConvDecimal(t *testing.T) {
+    t1 := TestInt{}
+    e := gconv.Struct(g.Map{"i1": "0777", "i2": "-011", "i3": " 006", "i4": "0x123"}, &t1)
+    gtest.Assert(e, nil)
+    gtest.Assert(t1.I1, 777)
+    gtest.Assert(t1.I2, -11)
+    gtest.Assert(t1.I3, 6)
+    gtest.Assert(t1.I4, 0)
+  }
+  ```
