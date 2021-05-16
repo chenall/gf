@@ -102,7 +102,7 @@ func (r *Request) doParse(pointer interface{}, requestType int) error {
 			}
 		}
 		// Validation.
-		if err := gvalid.CheckStructWithParamMap(pointer, data, nil); err != nil {
+		if err := gvalid.CheckStructWithParamMap(r.Context(), pointer, data, nil); err != nil {
 			return err
 		}
 
@@ -120,6 +120,7 @@ func (r *Request) doParse(pointer interface{}, requestType int) error {
 		}
 		for i := 0; i < reflectVal2.Len(); i++ {
 			if err := gvalid.CheckStructWithParamMap(
+				r.Context(),
 				reflectVal2.Index(i),
 				j.GetMap(gconv.String(i)),
 				nil,
@@ -319,7 +320,7 @@ func (r *Request) parseBody() {
 		body = bytes.TrimSpace(body)
 		// JSON format checks.
 		if body[0] == '{' && body[len(body)-1] == '}' {
-			_ = json.Unmarshal(body, &r.bodyMap)
+			_ = json.UnmarshalUseNumber(body, &r.bodyMap)
 		}
 		// XML format checks.
 		if len(body) > 5 && bytes.EqualFold(body[:5], xmlHeaderBytes) {
