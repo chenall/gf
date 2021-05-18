@@ -310,62 +310,8 @@ func (view *View) formatTemplateObjectCreatingError(filePath, tplName string, er
 // the returned template file <path>.
 func (view *View) searchFile(file string) (path string, folder string, resource *gres.File, err error) {
 	// checking file system from config first
-	for _, folderPath := range view.config.Paths {
-		folderPath = strings.TrimRight(folderPath, gfile.Separator)
-		if path, _ = gspath.Search(folderPath, file); path != "" {
-			folder = folderPath
-			return
-		}
-	}
-
-	// Firstly checking the resource manager.
-	if !gres.IsEmpty() {
-		// Try folders.
-		for _, folderPath := range resourceTryFolders {
-			if resource = gres.Get(folderPath + file); resource != nil {
-				path = resource.Name()
-				folder = folderPath
-				return
-			}
-		}
-		// Search folders.
-		view.paths.RLockFunc(func(array []string) {
-			for _, v := range array {
-				v = strings.TrimRight(v, "/"+gfile.Separator)
-				if resource = gres.Get(v + "/" + file); resource != nil {
-					path = resource.Name()
-					folder = v
-					break
-				}
-				if resource = gres.Get(v + "/template/" + file); resource != nil {
-					path = resource.Name()
-					folder = v + "/template"
-					break
-				}
-			}
-		})
-	}
-
-	if path != "" {
-		return
-	}
-
-	// Secondly checking the file system.
-	view.paths.RLockFunc(func(array []string) {
-		for _, folderPath := range array {
-			folderPath = strings.TrimRight(folderPath, gfile.Separator)
-			if path, _ = gspath.Search(folderPath, file); path != "" {
-				folder = folderPath
-				break
-			}
-			if path, _ = gspath.Search(folderPath+gfile.Separator+"template", file); path != "" {
-				folder = folderPath + gfile.Separator + "template"
-				break
-			}
-		}
-	})
-
-	if path != "" {
+	if path, resource = gspath.SearchWithRes(view.paths, file, "template"); path != "" {
+		folder = gfile.Dir(path)
 		return
 	}
 
