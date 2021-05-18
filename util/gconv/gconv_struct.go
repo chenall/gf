@@ -8,12 +8,13 @@ package gconv
 
 import (
 	"fmt"
+	"reflect"
+	"strings"
+
 	"github.com/gogf/gf/errors/gerror"
 	"github.com/gogf/gf/internal/empty"
 	"github.com/gogf/gf/internal/json"
 	"github.com/gogf/gf/internal/structs"
-	"reflect"
-	"strings"
 
 	"github.com/gogf/gf/internal/utils"
 )
@@ -310,7 +311,26 @@ func bindVarToStructAttr(elem reflect.Value, name string, value interface{}, map
 	if empty.IsNil(value) {
 		structFieldValue.Set(reflect.Zero(structFieldValue.Type()))
 	} else {
-		structFieldValue.Set(reflect.ValueOf(Convert(value, structFieldValue.Type().String())))
+		t := structFieldValue.Type().String()
+		if !strings.Contains(t, "[]") && strings.Contains(t, "int") {
+			if elemField, ok := elem.Type().FieldByName(name); ok {
+				if v, ok := elemField.Tag.Lookup("base"); ok {
+					if v == "10" {
+						v = strings.TrimSpace(String(value))
+						isMinus := v[0] == '-'
+						if isMinus || v[0] == '+' {
+							v = v[1:]
+						}
+						v = strings.TrimLeft(v, "0")
+						if isMinus {
+							v = "-" + v
+						}
+						value = v
+					}
+				}
+			}
+		}
+		structFieldValue.Set(reflect.ValueOf(Convert(value, t)))
 	}
 	return nil
 }

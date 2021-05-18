@@ -68,12 +68,19 @@ func doZipPathWriter(path string, exclude string, zipWriter *zip.Writer, prefix 
 		headerPrefix = gfile.Basename(path)
 	}
 	headerPrefix = strings.Replace(headerPrefix, "//", "/", -1)
+	pathlen := len(path)
 	for _, file := range files {
 		if exclude == file {
 			intlog.Printf(`exclude file path: %s`, file)
 			continue
 		}
-		err = zipFile(file, headerPrefix+gfile.Dir(file[len(path):]), zipWriter)
+
+		fp := file[pathlen:]
+		if len(fp)>0 {
+			fp = gfile.Dir(fp)
+		}
+
+		err = zipFile(file, headerPrefix+fp, zipWriter)
 		if err != nil {
 			return err
 		}
