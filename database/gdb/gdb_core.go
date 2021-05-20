@@ -11,10 +11,11 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/gogf/gf/errors/gerror"
-	"github.com/gogf/gf/text/gstr"
 	"reflect"
 	"strings"
+
+	"github.com/gogf/gf/errors/gerror"
+	"github.com/gogf/gf/text/gstr"
 
 	"github.com/gogf/gf/internal/utils"
 
@@ -53,7 +54,7 @@ func (c *Core) GetCtx() context.Context {
 	if c.ctx != nil {
 		return c.ctx
 	}
-	return context.Background()
+	return context.TODO()
 }
 
 // GetCtxTimeout returns the context and cancel function for specified timeout type.
@@ -387,15 +388,34 @@ func (c *Core) Begin() (*TX, error) {
 		//	ctx, cancelFunc = context.WithTimeout(ctx, c.GetConfig().TranTimeout)
 		//	defer cancelFunc()
 		//}
-		if tx, err := master.Begin(); err == nil {
+		var (
+			sqlStr     = "BEGIN"
+			mTime1     = gtime.TimestampMilli()
+			rawTx, err = master.Begin()
+			mTime2     = gtime.TimestampMilli()
+			sqlObj     = &Sql{
+				Sql:    sqlStr,
+				Type:   "DB.Begin",
+				Args:   nil,
+				Format: sqlStr,
+				Error:  err,
+				Start:  mTime1,
+				End:    mTime2,
+				Group:  c.db.GetGroup(),
+			}
+		)
+		c.db.addSqlToTracing(c.db.GetCtx(), sqlObj)
+		if c.db.GetDebug() {
+			c.db.writeSqlToLogger(sqlObj)
+		}
+		if err == nil {
 			return &TX{
 				db:     c.db,
-				tx:     tx,
+				tx:     rawTx,
 				master: master,
 			}, nil
-		} else {
-			return nil, err
 		}
+		return nil, err
 	}
 }
 
@@ -406,12 +426,19 @@ func (c *Core) Begin() (*TX, error) {
 //
 // Note that, you should not Commit or Rollback the transaction in function `f`
 // as it is automatically handled by this function.
-func (c *Core) Transaction(f func(tx *TX) error) (err error) {
+func (c *Core) Transaction(ctx context.Context, f func(ctx context.Context, tx *TX) error) (err error) {
 	var tx *TX
+	// Check transaction object from context.
+	tx = TXFromCtx(ctx)
+	if tx != nil {
+		return tx.Transaction(ctx, f)
+	}
 	tx, err = c.db.Begin()
 	if err != nil {
 		return err
 	}
+	// Inject transaction object into context.
+	ctx = WithTX(ctx, tx)
 	defer func() {
 		if err == nil {
 			if e := recover(); e != nil {
@@ -428,7 +455,7 @@ func (c *Core) Transaction(f func(tx *TX) error) (err error) {
 			}
 		}
 	}()
-	err = f(tx)
+	err = f(ctx, tx)
 	return
 }
 
@@ -462,6 +489,14 @@ func (c *Core) InsertIgnore(table string, data interface{}, batch ...int) (sql.R
 		return c.Model(table).Data(data).Batch(batch[0]).InsertIgnore()
 	}
 	return c.Model(table).Data(data).InsertIgnore()
+}
+
+// InsertAndGetId performs action Insert and returns the last insert id that automatically generated.
+func (c *Core) InsertAndGetId(table string, data interface{}, batch ...int) (int64, error) {
+	if len(batch) > 0 {
+		return c.Model(table).Data(data).Batch(batch[0]).InsertAndGetId()
+	}
+	return c.Model(table).Data(data).InsertAndGetId()
 }
 
 // Replace does "REPLACE INTO ..." statement for the table.

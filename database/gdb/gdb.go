@@ -11,9 +11,10 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"time"
+
 	"github.com/gogf/gf/errors/gerror"
 	"github.com/gogf/gf/os/gcmd"
-	"time"
 
 	"github.com/gogf/gf/container/gvar"
 	"github.com/gogf/gf/internal/intlog"
@@ -84,6 +85,7 @@ type DB interface {
 
 	Insert(table string, data interface{}, batch ...int) (sql.Result, error)       // See Core.Insert.
 	InsertIgnore(table string, data interface{}, batch ...int) (sql.Result, error) // See Core.InsertIgnore.
+	InsertAndGetId(table string, data interface{}, batch ...int) (int64, error)    // See Core.InsertAndGetId.
 	Replace(table string, data interface{}, batch ...int) (sql.Result, error)      // See Core.Replace.
 	Save(table string, data interface{}, batch ...int) (sql.Result, error)         // See Core.Save.
 
@@ -138,8 +140,8 @@ type DB interface {
 	// Transaction.
 	// ===========================================================================
 
-	Begin() (*TX, error)                          // See Core.Begin.
-	Transaction(f func(tx *TX) error) (err error) // See Core.Transaction.
+	Begin() (*TX, error)                                                              // See Core.Begin.
+	Transaction(ctx context.Context, f func(ctx context.Context, tx *TX) error) error // See Core.Transaction.
 
 	// ===========================================================================
 	// Configuration methods.
