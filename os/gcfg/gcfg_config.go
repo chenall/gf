@@ -8,8 +8,8 @@ package gcfg
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
+
 	"github.com/gogf/gf/container/garray"
 	"github.com/gogf/gf/container/gmap"
 	"github.com/gogf/gf/encoding/gjson"
@@ -104,67 +104,9 @@ func Instance(name ...string) *Config {
 // The parameter `path` can be absolute or relative path,
 // but absolute path is strongly recommended.
 func (c *Config) SetPath(path string) error {
-	var (
-		isDir    = false
-		realPath = ""
-	)
-	if file := gres.Get(path); file != nil {
-		realPath = path
-		isDir = file.FileInfo().IsDir()
-	} else {
-		// Absolute path.
-		realPath = gfile.RealPath(path)
-		if realPath == "" {
-			// Relative path.
-			c.searchPaths.RLockFunc(func(array []string) {
-				for _, v := range array {
-					if path, _ := gspath.Search(v, path); path != "" {
-						realPath = path
-						break
-					}
-				}
-			})
-		}
-		if realPath != "" {
-			isDir = gfile.IsDir(realPath)
-		}
-	}
-	// Path not exist.
-	if realPath == "" {
-		buffer := bytes.NewBuffer(nil)
-		if c.searchPaths.Len() > 0 {
-			buffer.WriteString(fmt.Sprintf("[gcfg] SetPath failed: cannot find directory \"%s\" in following paths:", path))
-			c.searchPaths.RLockFunc(func(array []string) {
-				for k, v := range array {
-					buffer.WriteString(fmt.Sprintf("\n%d. %s", k+1, v))
-				}
-			})
-		} else {
-			buffer.WriteString(fmt.Sprintf(`[gcfg] SetPath failed: path "%s" does not exist`, path))
-		}
-		err := errors.New(buffer.String())
-		if errorPrint() {
-			glog.Error(err)
-		}
-		return err
-	}
-	// Should be a directory.
-	if !isDir {
-		err := fmt.Errorf(`[gcfg] SetPath failed: path "%s" should be directory type`, path)
-		if errorPrint() {
-			glog.Error(err)
-		}
-		return err
-	}
-	// Repeated path check.
-	if c.searchPaths.Search(realPath) != -1 {
-		return nil
-	}
 	c.jsonMap.Clear()
 	c.searchPaths.Clear()
-	c.searchPaths.Append(realPath)
-	intlog.Print("SetPath:", realPath)
-	return nil
+	return c.AddPath(path)
 }
 
 // SetViolenceCheck sets whether to perform hierarchical conflict checking.
@@ -277,60 +219,30 @@ func (c *Config) GetFilePath(file ...string) (path string, err error) {
 	if len(file) > 0 {
 		name = file[0]
 	}
-	// Searching resource manager.
-	if !gres.IsEmpty() {
-		for _, v := range resourceTryFiles {
-			if file := gres.Get(v + name); file != nil {
-				path = file.Name()
-				return
-			}
-		}
+	c.autoCheckAndAddMainPkgPathToSearchPaths()
+	if path, _ := gspath.SearchWithRes(c.searchPaths, name, "config"); path != "" {
+		return path, nil
+	}
+
+	var (
+		buffer = bytes.NewBuffer(nil)
+	)
+	if c.searchPaths.Len() > 0 {
+		buffer.WriteString(fmt.Sprintf(`[gcfg] cannot find config file "%s" in resource manager or the following paths:`, name))
 		c.searchPaths.RLockFunc(func(array []string) {
-			for _, prefix := range array {
-				for _, v := range resourceTryFiles {
-					if file := gres.Get(prefix + v + name); file != nil {
-						path = file.Name()
-						return
-					}
-				}
+			index := 1
+			for _, v := range array {
+				v = gstr.TrimRight(v, `\/`)
+				buffer.WriteString(fmt.Sprintf("\n%d. %s", index, v))
+				index++
+				buffer.WriteString(fmt.Sprintf("\n%d. %s", index, v+gfile.Separator+"config"))
+				index++
 			}
 		})
+	} else {
+		buffer.WriteString(fmt.Sprintf("[gcfg] cannot find config file \"%s\" with no path configured", name))
 	}
-	c.autoCheckAndAddMainPkgPathToSearchPaths()
-	// Searching the file system.
-	c.searchPaths.RLockFunc(func(array []string) {
-		for _, prefix := range array {
-			prefix = gstr.TrimRight(prefix, `\/`)
-			if path, _ = gspath.Search(prefix, name); path != "" {
-				return
-			}
-			if path, _ = gspath.Search(prefix+gfile.Separator+"config", name); path != "" {
-				return
-			}
-		}
-	})
-	// If it cannot find the path of `file`, it formats and returns a detailed error.
-	if path == "" {
-		var (
-			buffer = bytes.NewBuffer(nil)
-		)
-		if c.searchPaths.Len() > 0 {
-			buffer.WriteString(fmt.Sprintf(`[gcfg] cannot find config file "%s" in resource manager or the following paths:`, name))
-			c.searchPaths.RLockFunc(func(array []string) {
-				index := 1
-				for _, v := range array {
-					v = gstr.TrimRight(v, `\/`)
-					buffer.WriteString(fmt.Sprintf("\n%d. %s", index, v))
-					index++
-					buffer.WriteString(fmt.Sprintf("\n%d. %s", index, v+gfile.Separator+"config"))
-					index++
-				}
-			})
-		} else {
-			buffer.WriteString(fmt.Sprintf("[gcfg] cannot find config file \"%s\" with no path configured", name))
-		}
-		err = gerror.New(buffer.String())
-	}
+	err = gerror.New(buffer.String())
 	return
 }
 
@@ -365,16 +277,14 @@ func (c *Config) getJson(file ...string) *gjson.Json {
 		// The configured content can be any kind of data type different from its file type.
 		isFromConfigContent := true
 		if content = GetContent(name); content == "" {
+			var res *gres.File
 			isFromConfigContent = false
-			filePath, err = c.GetFilePath(name)
-			if err != nil && errorPrint() {
-				glog.Error(err)
-			}
+			filePath, res = gspath.SearchWithRes(c.searchPaths, name, "config")
 			if filePath == "" {
 				return nil
 			}
-			if file := gres.Get(filePath); file != nil {
-				content = string(file.Content())
+			if res != nil {
+				content = string(res.Content())
 			} else {
 				content = gfile.GetContents(filePath)
 			}

@@ -14,10 +14,13 @@ package gspath
 import (
 	"errors"
 	"fmt"
-	"github.com/gogf/gf/internal/intlog"
 	"os"
 	"sort"
 	"strings"
+
+	"github.com/gogf/gf/os/gres"
+
+	"github.com/gogf/gf/internal/intlog"
 
 	"github.com/gogf/gf/container/garray"
 	"github.com/gogf/gf/container/gmap"
@@ -91,6 +94,54 @@ func Search(root string, name string, indexFiles ...string) (filePath string, is
 // or else it returns `filePath`.
 func SearchWithCache(root string, name string, indexFiles ...string) (filePath string, isDir bool) {
 	return Get(root, true).Search(name, indexFiles...)
+}
+
+// SearchWithRes 从 gres 和 文件系统 中查找指定文件,返回 filePath and resource
+// 优先使用文件系统的文件
+func SearchWithRes(searchPaths *garray.StrArray, fileName string, subDir string) (filePath string, resource *gres.File) {
+
+	resourceTryFiles := []string{""}
+	if subDir != "" {
+		resourceTryFiles = append(resourceTryFiles, subDir)
+	}
+	searchPaths.RLockFunc(func(array []string) {
+		for _, prefix := range array {
+			prefix = gstr.TrimRight(prefix, `\/`)
+			for _, v := range resourceTryFiles {
+				if filePath, _ = Search(prefix+gfile.Separator+v, fileName); filePath != "" {
+					return
+				}
+			}
+		}
+	})
+
+	if filePath != "" {
+		return
+	}
+
+	if !gres.IsEmpty() {
+		resourceTryFiles := []string{"", "/"}
+		if subDir != "" {
+			resourceTryFiles = append(resourceTryFiles, subDir+"/", subDir, "/"+subDir, "/"+subDir+"/")
+		}
+		for _, v := range resourceTryFiles {
+			if resource = gres.Get(v + fileName); resource != nil {
+				filePath = resource.Name()
+				return
+			}
+		}
+		searchPaths.RLockFunc(func(array []string) {
+			for _, prefix := range array {
+				for _, v := range resourceTryFiles {
+					if resource = gres.Get(prefix + v + fileName); resource != nil {
+						filePath = resource.Name()
+						return
+					}
+				}
+			}
+		})
+	}
+	return
 }
 
 // Set deletes all other searching directories and sets the searching directory for this manager.

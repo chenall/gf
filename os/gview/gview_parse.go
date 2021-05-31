@@ -11,6 +11,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	htmltpl "html/template"
+	"strconv"
+	"strings"
+	texttpl "text/template"
+
 	"github.com/gogf/gf/encoding/ghash"
 	"github.com/gogf/gf/errors/gerror"
 	"github.com/gogf/gf/internal/intlog"
@@ -19,10 +24,6 @@ import (
 	"github.com/gogf/gf/text/gstr"
 	"github.com/gogf/gf/util/gconv"
 	"github.com/gogf/gf/util/gutil"
-	htmltpl "html/template"
-	"strconv"
-	"strings"
-	texttpl "text/template"
 
 	"github.com/gogf/gf/os/gres"
 
@@ -308,76 +309,35 @@ func (view *View) formatTemplateObjectCreatingError(filePath, tplName string, er
 // Note that, the returned <folder> is the template folder path, but not the folder of
 // the returned template file <path>.
 func (view *View) searchFile(file string) (path string, folder string, resource *gres.File, err error) {
-	// Firstly checking the resource manager.
-	if !gres.IsEmpty() {
-		// Try folders.
-		for _, folderPath := range resourceTryFolders {
-			if resource = gres.Get(folderPath + file); resource != nil {
-				path = resource.Name()
-				folder = folderPath
-				return
-			}
-		}
-		// Search folders.
-		view.paths.RLockFunc(func(array []string) {
-			for _, v := range array {
-				v = strings.TrimRight(v, "/"+gfile.Separator)
-				if resource = gres.Get(v + "/" + file); resource != nil {
-					path = resource.Name()
-					folder = v
-					break
-				}
-				if resource = gres.Get(v + "/template/" + file); resource != nil {
-					path = resource.Name()
-					folder = v + "/template"
-					break
-				}
-			}
-		})
-	}
-
-	// Secondly checking the file system.
-	if path == "" {
-		view.paths.RLockFunc(func(array []string) {
-			for _, folderPath := range array {
-				folderPath = strings.TrimRight(folderPath, gfile.Separator)
-				if path, _ = gspath.Search(folderPath, file); path != "" {
-					folder = folderPath
-					break
-				}
-				if path, _ = gspath.Search(folderPath+gfile.Separator+"template", file); path != "" {
-					folder = folderPath + gfile.Separator + "template"
-					break
-				}
-			}
-		})
+	// checking file system from config first
+	if path, resource = gspath.SearchWithRes(view.paths, file, "template"); path != "" {
+		folder = gfile.Dir(path)
+		return
 	}
 
 	// Error checking.
-	if path == "" {
-		buffer := bytes.NewBuffer(nil)
-		if view.paths.Len() > 0 {
-			buffer.WriteString(fmt.Sprintf("[gview] cannot find template file \"%s\" in following paths:", file))
-			view.paths.RLockFunc(func(array []string) {
-				index := 1
-				for _, folderPath := range array {
-					folderPath = strings.TrimRight(folderPath, "/")
-					if folderPath == "" {
-						folderPath = "/"
-					}
-					buffer.WriteString(fmt.Sprintf("\n%d. %s", index, folderPath))
-					index++
-					buffer.WriteString(fmt.Sprintf("\n%d. %s", index, strings.TrimRight(folderPath, "/")+gfile.Separator+"template"))
-					index++
+	buffer := bytes.NewBuffer(nil)
+	if view.paths.Len() > 0 {
+		buffer.WriteString(fmt.Sprintf("[gview] cannot find template file \"%s\" in following paths:", file))
+		view.paths.RLockFunc(func(array []string) {
+			index := 1
+			for _, folderPath := range array {
+				folderPath = strings.TrimRight(folderPath, "/")
+				if folderPath == "" {
+					folderPath = "/"
 				}
-			})
-		} else {
-			buffer.WriteString(fmt.Sprintf("[gview] cannot find template file \"%s\" with no path set/add", file))
-		}
-		if errorPrint() {
-			glog.Error(buffer.String())
-		}
-		err = errors.New(fmt.Sprintf(`template file "%s" not found`, file))
+				buffer.WriteString(fmt.Sprintf("\n%d. %s", index, folderPath))
+				index++
+				buffer.WriteString(fmt.Sprintf("\n%d. %s", index, strings.TrimRight(folderPath, "/")+gfile.Separator+"template"))
+				index++
+			}
+		})
+	} else {
+		buffer.WriteString(fmt.Sprintf("[gview] cannot find template file \"%s\" with no path set/add", file))
 	}
+	if errorPrint() {
+		glog.Error(buffer.String())
+	}
+	err = errors.New(fmt.Sprintf(`template file "%s" not found`, file))
 	return
 }

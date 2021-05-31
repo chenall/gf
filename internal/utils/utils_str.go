@@ -8,6 +8,8 @@ package utils
 
 import (
 	"strings"
+
+	"github.com/gogf/gf/text/gregex"
 )
 
 var (
@@ -93,13 +95,19 @@ func ReplaceByMap(origin string, replaces map[string]string) string {
 
 // RemoveSymbols removes all symbols from string and lefts only numbers and letters.
 func RemoveSymbols(s string) string {
-	var b []byte
-	for _, c := range s {
-		if (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') {
-			b = append(b, byte(c))
-		}
+	if s1, err := gregex.ReplaceString(`[\-\.\_\s]+`, "", s); err == nil {
+		return s1
 	}
-	return string(b)
+	return s
+	/*
+		var b []byte
+		for _, c := range s {
+			if (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') {
+				b = append(b, byte(c))
+			}
+		}
+		return string(b)
+	*/
 }
 
 // EqualFoldWithoutChars checks string `s1` and `s2` equal case-insensitively,
