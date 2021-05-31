@@ -11,6 +11,7 @@ package gconv
 
 import (
 	"fmt"
+	"math"
 	"reflect"
 	"strconv"
 	"strings"
@@ -40,7 +41,7 @@ var (
 		"false": {},
 	}
 
-	// Priority tags for Map*/Struct* functions.
+	// StructTagPriority defines the default priority tags for Map*/Struct* functions.
 	// Note, the "gconv", "param", "params" tags are used by old version of package.
 	// It is strongly recommended using short tag "c" or "p" instead in the future.
 	StructTagPriority = []string{"gconv", "param", "params", "c", "p", "json"}
@@ -300,6 +301,32 @@ func Bytes(any interface{}) []byte {
 		if f, ok := value.(apiBytes); ok {
 			return f.Bytes()
 		}
+		var (
+			reflectValue = reflect.ValueOf(any)
+			reflectKind  = reflectValue.Kind()
+		)
+		for reflectKind == reflect.Ptr {
+			reflectValue = reflectValue.Elem()
+			reflectKind = reflectValue.Kind()
+		}
+		switch reflectKind {
+		case reflect.Array, reflect.Slice:
+			var (
+				ok    = true
+				bytes = make([]byte, reflectValue.Len())
+			)
+			for i, _ := range bytes {
+				int32Value := Int32(reflectValue.Index(i).Interface())
+				if int32Value < 0 || int32Value > math.MaxUint8 {
+					ok = false
+					break
+				}
+				bytes[i] = byte(int32Value)
+			}
+			if ok {
+				return bytes
+			}
+		}
 		return gbinary.Encode(any)
 	}
 }
@@ -309,7 +336,7 @@ func Rune(any interface{}) rune {
 	if v, ok := any.(rune); ok {
 		return v
 	}
-	return rune(Int32(any))
+	return Int32(any)
 }
 
 // Runes converts `any` to []rune.
