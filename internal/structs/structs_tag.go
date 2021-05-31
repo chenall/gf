@@ -121,6 +121,9 @@ func getFieldValues(value interface{}) ([]*Field, error) {
 	}
 	for {
 		switch reflectKind {
+		case reflect.Interface:
+			reflectValue = reflectValue.Elem()
+			reflectKind = reflectValue.Kind()
 		case reflect.Ptr:
 			if !reflectValue.IsValid() || reflectValue.IsNil() {
 				// If pointer is type of *struct and nil, then automatically create a temporary struct.
