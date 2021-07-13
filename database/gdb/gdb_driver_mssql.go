@@ -50,7 +50,7 @@ func (d *DriverMssql) Open(config *ConfigNode) (*sql.DB, error) {
 			config.User, config.Pass, config.Host, config.Port, config.Name,
 		)
 	}
-	intlog.Printf("Open: %s", source)
+	intlog.Printf(d.GetCtx(), "Open: %s", source)
 	if db, err := sql.Open("sqlserver", source); err == nil {
 		return db, nil
 	} else {
@@ -79,7 +79,10 @@ func (d *DriverMssql) GetChars() (charLeft string, charRight string) {
 }
 
 // DoCommit deals with the sql string before commits it to underlying sql driver.
-func (d *DriverMssql) DoCommit(ctx context.Context, link Link, sql string, args []interface{}) (string, []interface{}) {
+func (d *DriverMssql) DoCommit(ctx context.Context, link Link, sql string, args []interface{}) (newSql string, newArgs []interface{}, err error) {
+	defer func() {
+		newSql, newArgs, err = d.Core.DoCommit(ctx, link, newSql, newArgs)
+	}()
 	var index int
 	// Convert place holder char '?' to string "@px".
 	str, _ := gregex.ReplaceStringFunc("\\?", sql, func(s string) string {
@@ -87,7 +90,7 @@ func (d *DriverMssql) DoCommit(ctx context.Context, link Link, sql string, args 
 		return fmt.Sprintf("@p%d", index)
 	})
 	str, _ = gregex.ReplaceString("\"", "", str)
-	return d.parseSql(str), args
+	return d.parseSql(str), args, nil
 }
 
 // parseSql does some replacement of the sql before commits it to underlying driver,
@@ -283,4 +286,18 @@ ORDER BY a.id,a.colorder`,
 		fields = v.(map[string]*TableField)
 	}
 	return
+}
+
+// DoInsert is not supported in mssql.
+func (d *DriverMssql) DoInsert(ctx context.Context, link Link, table string, list List, option DoInsertOption) (result sql.Result, err error) {
+	switch option.InsertOption {
+	case insertOptionSave:
+		return nil, gerror.New(`Save operation is not supported by mssql driver`)
+
+	case insertOptionReplace:
+		return nil, gerror.New(`Replace operation is not supported by mssql driver`)
+
+	default:
+		return d.Core.DoInsert(ctx, link, table, list, option)
+	}
 }

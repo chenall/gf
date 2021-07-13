@@ -32,11 +32,6 @@ type DriverOracle struct {
 	*Core
 }
 
-const (
-	tableAlias1 = "GFORM1"
-	tableAlias2 = "GFORM2"
-)
-
 // New creates and returns a database object for oracle.
 // It implements the interface of gdb.Driver for extra database driver installation.
 func (d *DriverOracle) New(core *Core, node *ConfigNode) (DB, error) {
@@ -56,7 +51,7 @@ func (d *DriverOracle) Open(config *ConfigNode) (*sql.DB, error) {
 			config.User, config.Pass, config.Host, config.Port, config.Name,
 		)
 	}
-	intlog.Printf("Open: %s", source)
+	intlog.Printf(d.GetCtx(), "Open: %s", source)
 	if db, err := sql.Open("oci8", source); err == nil {
 		return db, nil
 	} else {
@@ -85,7 +80,11 @@ func (d *DriverOracle) GetChars() (charLeft string, charRight string) {
 }
 
 // DoCommit deals with the sql string before commits it to underlying sql driver.
-func (d *DriverOracle) DoCommit(ctx context.Context, link Link, sql string, args []interface{}) (newSql string, newArgs []interface{}) {
+func (d *DriverOracle) DoCommit(ctx context.Context, link Link, sql string, args []interface{}) (newSql string, newArgs []interface{}, err error) {
+	defer func() {
+		newSql, newArgs, err = d.Core.DoCommit(ctx, link, newSql, newArgs)
+	}()
+
 	var index int
 	// Convert place holder char '?' to string ":vx".
 	newSql, _ = gregex.ReplaceStringFunc("\\?", sql, func(s string) string {
@@ -264,7 +263,27 @@ func (d *DriverOracle) getTableUniqueIndex(table string) (fields map[string]map[
 	return
 }
 
+// DoInsert inserts or updates data for given table.
+// This function is usually used for custom interface definition, you do not need call it manually.
+// The parameter `data` can be type of map/gmap/struct/*struct/[]map/[]struct, etc.
+// Eg:
+// Data(g.Map{"uid": 10000, "name":"john"})
+// Data(g.Slice{g.Map{"uid": 10000, "name":"john"}, g.Map{"uid": 20000, "name":"smith"})
+//
+// The parameter `option` values are as follows:
+// 0: insert:  just insert, if there's unique/primary key in the data, it returns error;
+// 1: replace: if there's unique/primary key in the data, it deletes it from table and inserts a new one;
+// 2: save:    if there's unique/primary key in the data, it updates it or else inserts a new one;
+// 3: ignore:  if there's unique/primary key in the data, it ignores the inserting;
 func (d *DriverOracle) DoInsert(ctx context.Context, link Link, table string, list List, option DoInsertOption) (result sql.Result, err error) {
+	switch option.InsertOption {
+	case insertOptionSave:
+		return nil, gerror.New(`Save operation is not supported by mssql driver`)
+
+	case insertOptionReplace:
+		return nil, gerror.New(`Replace operation is not supported by mssql driver`)
+	}
+
 	var (
 		keys   []string
 		values []string

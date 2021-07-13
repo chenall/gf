@@ -13,6 +13,11 @@ import (
 	"math"
 )
 
+// Interface converts and returns `r` as type of interface{}.
+func (r Result) Interface() interface{} {
+	return r
+}
+
 // IsEmpty checks and returns whether `r` is empty.
 func (r Result) IsEmpty() bool {
 	return r.Len() == 0
@@ -189,5 +194,5 @@ func (r Result) RecordKeyUint(key string) map[uint]Record {
 // Structs converts `r` to struct slice.
 // Note that the parameter `pointer` should be type of *[]struct/*[]*struct.
 func (r Result) Structs(pointer interface{}) (err error) {
-	return gconv.StructsTag(r.List(), pointer, OrmTagForStruct)
+	return gconv.StructsTag(r, pointer, OrmTagForStruct)
 }

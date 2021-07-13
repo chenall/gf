@@ -40,6 +40,7 @@ func (c *Core) Ctx(ctx context.Context) DB {
 	if c.ctx != nil {
 		return c.db
 	}
+	ctx = context.WithValue(ctx, ctxStrictKeyName, 1)
 	// It makes a shallow copy of current db and changes its context for next chaining operation.
 	var (
 		err        error
@@ -189,9 +190,9 @@ func (c *Core) GetScan(pointer interface{}, sql string, args ...interface{}) err
 	k = t.Elem().Kind()
 	switch k {
 	case reflect.Array, reflect.Slice:
-		return c.db.GetStructs(pointer, sql, args...)
+		return c.db.GetCore().GetStructs(pointer, sql, args...)
 	case reflect.Struct:
-		return c.db.GetStruct(pointer, sql, args...)
+		return c.db.GetCore().GetStruct(pointer, sql, args...)
 	}
 	return fmt.Errorf("element type should be type of struct/slice, unsupported: %v", k)
 }
@@ -352,7 +353,7 @@ func (c *Core) Save(table string, data interface{}, batch ...int) (sql.Result, e
 	return c.Model(table).Data(data).Save()
 }
 
-// DoInsert inserts or updates data for given table.
+// DoInsert inserts or updates data forF given table.
 // This function is usually used for custom interface definition, you do not need call it manually.
 // The parameter `data` can be type of map/gmap/struct/*struct/[]map/[]struct, etc.
 // Eg:

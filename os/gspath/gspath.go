@@ -12,15 +12,12 @@
 package gspath
 
 import (
-	"errors"
-	"fmt"
+	"context"
+	"github.com/gogf/gf/errors/gerror"
+	"github.com/gogf/gf/internal/intlog"
 	"os"
 	"sort"
 	"strings"
-
-	"github.com/gogf/gf/os/gres"
-
-	"github.com/gogf/gf/internal/intlog"
 
 	"github.com/gogf/gf/container/garray"
 	"github.com/gogf/gf/container/gmap"
@@ -96,54 +93,6 @@ func SearchWithCache(root string, name string, indexFiles ...string) (filePath s
 	return Get(root, true).Search(name, indexFiles...)
 }
 
-// SearchWithRes 从 gres 和 文件系统 中查找指定文件,返回 filePath and resource
-// 优先使用文件系统的文件
-func SearchWithRes(searchPaths *garray.StrArray, fileName string, subDir string) (filePath string, resource *gres.File) {
-
-	resourceTryFiles := []string{""}
-	if subDir != "" {
-		resourceTryFiles = append(resourceTryFiles, subDir)
-	}
-	searchPaths.RLockFunc(func(array []string) {
-		for _, prefix := range array {
-			prefix = gstr.TrimRight(prefix, `\/`)
-			for _, v := range resourceTryFiles {
-				if filePath, _ = Search(prefix+gfile.Separator+v, fileName); filePath != "" {
-					return
-				}
-			}
-		}
-	})
-
-	if filePath != "" {
-		return
-	}
-
-	if !gres.IsEmpty() {
-		resourceTryFiles := []string{"", "/"}
-		if subDir != "" {
-			resourceTryFiles = append(resourceTryFiles, subDir+"/", subDir, "/"+subDir, "/"+subDir+"/")
-		}
-		for _, v := range resourceTryFiles {
-			if resource = gres.Get(v + fileName); resource != nil {
-				filePath = resource.Name()
-				return
-			}
-		}
-		searchPaths.RLockFunc(func(array []string) {
-			for _, prefix := range array {
-				for _, v := range resourceTryFiles {
-					if resource = gres.Get(prefix + v + fileName); resource != nil {
-						filePath = resource.Name()
-						return
-					}
-				}
-			}
-		})
-	}
-	return
-}
-
 // Set deletes all other searching directories and sets the searching directory for this manager.
 func (sp *SPath) Set(path string) (realPath string, err error) {
 	realPath = gfile.RealPath(path)
@@ -154,7 +103,7 @@ func (sp *SPath) Set(path string) (realPath string, err error) {
 		}
 	}
 	if realPath == "" {
-		return realPath, errors.New(fmt.Sprintf(`path "%s" does not exist`, path))
+		return realPath, gerror.Newf(`path "%s" does not exist`, path)
 	}
 	// The set path must be a directory.
 	if gfile.IsDir(realPath) {
@@ -164,7 +113,7 @@ func (sp *SPath) Set(path string) (realPath string, err error) {
 				sp.removeMonitorByPath(v)
 			}
 		}
-		intlog.Print("paths clear:", sp.paths)
+		intlog.Print(context.TODO(), "paths clear:", sp.paths)
 		sp.paths.Clear()
 		if sp.cache != nil {
 			sp.cache.Clear()
@@ -174,7 +123,7 @@ func (sp *SPath) Set(path string) (realPath string, err error) {
 		sp.addMonitorByPath(realPath)
 		return realPath, nil
 	} else {
-		return "", errors.New(path + " should be a folder")
+		return "", gerror.New(path + " should be a folder")
 	}
 }
 
@@ -189,7 +138,7 @@ func (sp *SPath) Add(path string) (realPath string, err error) {
 		}
 	}
 	if realPath == "" {
-		return realPath, errors.New(fmt.Sprintf(`path "%s" does not exist`, path))
+		return realPath, gerror.Newf(`path "%s" does not exist`, path)
 	}
 	// The added path must be a directory.
 	if gfile.IsDir(realPath) {
@@ -203,7 +152,7 @@ func (sp *SPath) Add(path string) (realPath string, err error) {
 		}
 		return realPath, nil
 	} else {
-		return "", errors.New(path + " should be a folder")
+		return "", gerror.New(path + " should be a folder")
 	}
 }
 

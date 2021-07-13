@@ -7,12 +7,11 @@
 package gcron
 
 import (
-	"errors"
-	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/gogf/gf/errors/gerror"
 	"github.com/gogf/gf/os/gtime"
 
 	"github.com/gogf/gf/text/gregex"
@@ -96,7 +95,7 @@ func newSchedule(pattern string) (*cronSchedule, error) {
 				}, nil
 			}
 		} else {
-			return nil, errors.New(fmt.Sprintf(`invalid pattern: "%s"`, pattern))
+			return nil, gerror.Newf(`invalid pattern: "%s"`, pattern)
 		}
 	}
 	// Handle the common cron pattern, like:
@@ -145,7 +144,7 @@ func newSchedule(pattern string) (*cronSchedule, error) {
 		}
 		return schedule, nil
 	} else {
-		return nil, errors.New(fmt.Sprintf(`invalid pattern: "%s"`, pattern))
+		return nil, gerror.Newf(`invalid pattern: "%s"`, pattern)
 	}
 }
 
@@ -162,7 +161,7 @@ func parseItem(item string, min int, max int, allowQuestionMark bool) (map[int]s
 			intervalArray := strings.Split(item, "/")
 			if len(intervalArray) == 2 {
 				if i, err := strconv.Atoi(intervalArray[1]); err != nil {
-					return nil, errors.New(fmt.Sprintf(`invalid pattern item: "%s"`, item))
+					return nil, gerror.Newf(`invalid pattern item: "%s"`, item)
 				} else {
 					interval = i
 				}
@@ -187,7 +186,7 @@ func parseItem(item string, min int, max int, allowQuestionMark bool) (map[int]s
 			// Eg: */5
 			if rangeArray[0] != "*" {
 				if i, err := parseItemValue(rangeArray[0], fieldType); err != nil {
-					return nil, errors.New(fmt.Sprintf(`invalid pattern item: "%s"`, item))
+					return nil, gerror.Newf(`invalid pattern item: "%s"`, item)
 				} else {
 					rangeMin = i
 					rangeMax = i
@@ -195,7 +194,7 @@ func parseItem(item string, min int, max int, allowQuestionMark bool) (map[int]s
 			}
 			if len(rangeArray) == 2 {
 				if i, err := parseItemValue(rangeArray[1], fieldType); err != nil {
-					return nil, errors.New(fmt.Sprintf(`invalid pattern item: "%s"`, item))
+					return nil, gerror.Newf(`invalid pattern item: "%s"`, item)
 				} else {
 					rangeMax = i
 				}
@@ -245,7 +244,7 @@ func parseItemValue(value string, fieldType byte) (int, error) {
 
 		}
 	}
-	return 0, errors.New(fmt.Sprintf(`invalid pattern value: "%s"`, value))
+	return 0, gerror.Newf(`invalid pattern value: "%s"`, value)
 }
 
 // meet checks if the given time <t> meets the runnable point for the job.

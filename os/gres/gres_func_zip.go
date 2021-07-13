@@ -8,6 +8,7 @@ package gres
 
 import (
 	"archive/zip"
+	"context"
 	"github.com/gogf/gf/internal/fileinfo"
 	"github.com/gogf/gf/internal/intlog"
 	"github.com/gogf/gf/os/gfile"
@@ -71,12 +72,12 @@ func doZipPathWriter(path string, exclude string, zipWriter *zip.Writer, prefix 
 	pathlen := len(path)
 	for _, file := range files {
 		if exclude == file {
-			intlog.Printf(`exclude file path: %s`, file)
+			intlog.Printf(context.TODO(), `exclude file path: %s`, file)
 			continue
 		}
 
 		fp := file[pathlen:]
-		if len(fp)>0 {
+		if len(fp) > 0 {
 			fp = gfile.Dir(fp)
 		}
 

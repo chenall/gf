@@ -8,6 +8,7 @@ package gcfg
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 
 	"github.com/gogf/gf/container/garray"
@@ -33,7 +34,7 @@ func New(file ...string) *Config {
 		name = file[0]
 	} else {
 		// Custom default configuration file name from command line or environment.
-		if customFile := gcmd.GetOptWithEnv(fmt.Sprintf("%s.file", cmdEnvKey)).String(); customFile != "" {
+		if customFile := gcmd.GetOptWithEnv(commandEnvKeyForFile).String(); customFile != "" {
 			name = customFile
 		}
 	}
@@ -43,7 +44,7 @@ func New(file ...string) *Config {
 		jsonMap:     gmap.NewStrAnyMap(true),
 	}
 	// Customized dir path from env/cmd.
-	if customPath := gcmd.GetOptWithEnv(fmt.Sprintf("%s.path", cmdEnvKey)).String(); customPath != "" {
+	if customPath := gcmd.GetOptWithEnv(commandEnvKeyForPath).String(); customPath != "" {
 		if gfile.Exists(customPath) {
 			_ = c.SetPath(customPath)
 		} else {
@@ -54,20 +55,20 @@ func New(file ...string) *Config {
 	} else {
 		// Dir path of working dir.
 		if err := c.AddPath(gfile.Pwd()); err != nil {
-			intlog.Error(err)
+			intlog.Error(context.TODO(), err)
 		}
 
 		// Dir path of main package.
 		if mainPath := gfile.MainPkgPath(); mainPath != "" && gfile.Exists(mainPath) {
 			if err := c.AddPath(mainPath); err != nil {
-				intlog.Error(err)
+				intlog.Error(context.TODO(), err)
 			}
 		}
 
 		// Dir path of binary.
 		if selfPath := gfile.SelfDir(); selfPath != "" && gfile.Exists(selfPath) {
 			if err := c.AddPath(selfPath); err != nil {
-				intlog.Error(err)
+				intlog.Error(context.TODO(), err)
 			}
 		}
 	}
@@ -179,7 +180,7 @@ func (c *Config) AddPath(path string) error {
 		return nil
 	}
 	c.searchPaths.Append(realPath)
-	intlog.Print("AddPath:", realPath)
+	intlog.Print(context.TODO(), "AddPath:", realPath)
 	return nil
 }
 
