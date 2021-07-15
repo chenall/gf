@@ -8,12 +8,12 @@ package gconv
 
 import (
 	"fmt"
-	"github.com/gogf/gf/errors/gerror"
-	"github.com/gogf/gf/internal/empty"
-	"github.com/gogf/gf/internal/json"
-	"github.com/gogf/gf/internal/structs"
 	"reflect"
 	"strings"
+
+	"github.com/gogf/gf/errors/gerror"
+	"github.com/gogf/gf/internal/empty"
+	"github.com/gogf/gf/internal/structs"
 
 	"github.com/gogf/gf/internal/utils"
 )
@@ -77,6 +77,7 @@ func doStruct(params interface{}, pointer interface{}, mapping map[string]string
 		}
 	}()
 
+	/* 2021-07-13 停用该功能 by chenall，因为会丢失 gconv 的一些特性.
 	// If given `params` is JSON, it then uses json.Unmarshal doing the converting.
 	switch r := params.(type) {
 	case []byte:
@@ -104,7 +105,7 @@ func doStruct(params interface{}, pointer interface{}, mapping map[string]string
 			}
 		}
 	}
-
+	*/
 	var (
 		paramsReflectValue      reflect.Value
 		paramsInterface         interface{} // DO NOT use `params` directly as it might be type of `reflect.Value`

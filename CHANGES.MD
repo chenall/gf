@@ -66,3 +66,5 @@
     gtest.Assert(t1.I4, 0)
   }
   ```
+* gconv 从 string 或 []byte 转换时不使用 `json Unmarshal` **21.07.15**  
+  注：原版会尝试使用 `json Unmarshal` 导致丢失 gconv 的一些特性 [issue 1227](https://github.com/gogf/gf/issues/1227#issuecomment-828460451)
