@@ -277,7 +277,7 @@ func doMapConvertForMapOrStructValue(isRoot bool, value interface{}, recursive b
 					rvAttrField = rvField
 					rvAttrKind  = rvField.Kind()
 				)
-				if rvAttrKind == reflect.Ptr {
+				for rvAttrKind == reflect.Interface || rvAttrKind == reflect.Ptr {
 					rvAttrField = rvField.Elem()
 					rvAttrKind = rvAttrField.Kind()
 				}
