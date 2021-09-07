@@ -42,13 +42,19 @@ func DecodeWithoutRoot(content []byte) (map[string]interface{}, error) {
 	return m, nil
 }
 
+// EncodeAny encodes any to a XML format content as bytes.
+// The optional parameter <rootTag> is used to specify the XML root tag.
+func EncodeAny(any interface{}, rootTag ...string) ([]byte, error) {
+	return mxj.AnyXml(any, rootTag...)
+}
+
 // Encode encodes map <m> to a XML format content as bytes.
 // The optional parameter <rootTag> is used to specify the XML root tag.
 func Encode(m map[string]interface{}, rootTag ...string) ([]byte, error) {
 	return mxj.Map(m).Xml(rootTag...)
 }
 
-// Encode encodes map <m> to a XML format content as bytes with indent.
+// EncodeWithIndent encodes map <m> to a XML format content as bytes with indent.
 // The optional parameter <rootTag> is used to specify the XML root tag.
 func EncodeWithIndent(m map[string]interface{}, rootTag ...string) ([]byte, error) {
 	return mxj.Map(m).XmlIndent("", "\t", rootTag...)
