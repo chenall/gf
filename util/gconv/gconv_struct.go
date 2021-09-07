@@ -317,9 +317,15 @@ func bindVarToStructAttr(elem reflect.Value, name string, value interface{}, map
 	if empty.IsNil(value) {
 		structFieldValue.Set(reflect.Zero(structFieldValue.Type()))
 	} else {
-		t := structFieldValue.Type().String()
-		if !strings.Contains(t, "[]") && strings.Contains(t, "int") {
-			if elemField, ok := elem.Type().FieldByName(name); ok {
+		var extra []interface{}
+		if elemField, ok := elem.Type().FieldByName(name); ok {
+			if v, ok := elemField.Tag.Lookup("extra"); ok {
+				for _, v := range strings.Split(v, ",") {
+					extra = append(extra, v)
+				}
+			}
+			t := structFieldValue.Type().String()
+			if !strings.Contains(t, "[]") && strings.Contains(t, "int") {
 				if v, ok := elemField.Tag.Lookup("base"); ok {
 					if v == "10" {
 						v = strings.TrimSpace(String(value))
@@ -336,11 +342,13 @@ func bindVarToStructAttr(elem reflect.Value, name string, value interface{}, map
 				}
 			}
 		}
+
 		structFieldValue.Set(reflect.ValueOf(doConvert(
 			doConvertInput{
 				FromValue:  value,
 				ToTypeName: structFieldValue.Type().String(),
 				ReferValue: structFieldValue,
+				Extra:      extra,
 			},
 		)))
 	}
