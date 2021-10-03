@@ -10,16 +10,17 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
+	"os"
+	"strings"
+	"time"
+
 	"github.com/gogf/gf/container/gtype"
 	"github.com/gogf/gf/internal/intlog"
 	"github.com/gogf/gf/os/gfpool"
 	"github.com/gogf/gf/os/gmlock"
 	"github.com/gogf/gf/os/gtimer"
 	"go.opentelemetry.io/otel/trace"
-	"io"
-	"os"
-	"strings"
-	"time"
 
 	"github.com/gogf/gf/debug/gdebug"
 
@@ -190,6 +191,10 @@ func (l *Logger) print(ctx context.Context, level int, values ...interface{}) {
 	var tempStr string
 	for _, v := range values {
 		tempStr = gconv.String(v)
+		//2021.10.03 by chenall 当 tempStr 为空时后面的 tempStr[0] 会异常
+		if tempStr == "" {
+			continue
+		}
 		if len(input.Content) > 0 {
 			if input.Content[len(input.Content)-1] == '\n' {
 				// Remove one blank line(\n\n).
