@@ -68,3 +68,10 @@
   ```
 * gconv 从 string 或 []byte 转换时不使用 `json Unmarshal` **21.07.15**  
   注：原版会尝试使用 `json Unmarshal` 导致丢失 gconv 的一些特性 [issue 1227](https://github.com/gogf/gf/issues/1227#issuecomment-828460451)
+
+
+* 2021-10-27 gcfg 添加 FindConfig 函数 
+  >判断 `name` 配置文件是否存在，如果存在返回配置，否则返回 `nil` 可以指定多个备用配置文件.  
+  >FindConfig(name string, file ...string)  
+  > 用于某些特定的场合，从多个配置文件中选取一个可用的。
+
