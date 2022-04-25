@@ -41,7 +41,7 @@ func Decode(data []byte) (res map[string]interface{}, err error) {
 			continue
 		}
 
-		if lineStr[0] == ';' || lineStr[0] == '#' {
+		if lineStr[0] == ';' || lineStr[0] == '#' || lineStr[0] == '/' {
 			continue
 		}
 
