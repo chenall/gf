@@ -6,8 +6,9 @@ require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/clbanning/mxj/v2 v2.5.5
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/fatih/color v1.13.0
 	github.com/fsnotify/fsnotify v1.4.9
-	github.com/gogf/mysql v1.6.1-0.20210603073548-16164ae25579
+	github.com/go-sql-driver/mysql v1.6.0
 	github.com/gomodule/redigo v2.0.0+incompatible
 	github.com/gorilla/websocket v1.4.2
 	github.com/grokify/html-strip-tags-go v0.0.0-20200322061010-ea0c1cf2f119
