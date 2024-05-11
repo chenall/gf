@@ -50,7 +50,7 @@ var (
 	commPidFolderPath string
 )
 
-func init() {
+func commPidFolderPathInit() {
 	availablePaths := []string{
 		"/var/tmp",
 		"/var/run",
@@ -103,5 +103,8 @@ func getPortByPid(pid int) int {
 
 // getCommFilePath returns the pid to port mapping file path for given pid.
 func getCommFilePath(pid int) string {
+	if commPidFolderPath == "" {
+		commPidFolderPathInit()
+	}
 	return gfile.Join(commPidFolderPath, gconv.String(pid))
 }
