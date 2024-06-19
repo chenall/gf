@@ -650,7 +650,8 @@ func formatWhereKeyValue(db DB, buffer *bytes.Buffer, newArgs []interface{}, key
 					// The key is not a regular field name.
 					// Eg: Where(g.Map{"age > 16": nil})
 					// Issue: https://github.com/gogf/gf/issues/765
-					if empty.IsEmpty(value) {
+					// 240619 changed by chenall 感觉这样判断会更合适
+					if empty.IsNil(value) && gregex.IsMatchString("[><=]+", quotedKey) {
 						buffer.WriteString(quotedKey)
 						break
 					} else {

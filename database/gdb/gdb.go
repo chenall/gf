@@ -304,12 +304,12 @@ var (
 
 	// regularFieldNameRegPattern is the regular expression pattern for a string
 	// which is a regular field name of table.
-	regularFieldNameRegPattern = `^[\w\.\-]+$`
+	regularFieldNameRegPattern = `^[\w\.\-#]+$`
 
 	// regularFieldNameWithoutDotRegPattern is similar to regularFieldNameRegPattern but not allows '.'.
 	// Note that, although some databases allow char '.' in the field name, but it here does not allow '.'
 	// in the field name as it conflicts with "db.table.field" pattern in SOME situations.
-	regularFieldNameWithoutDotRegPattern = `^[\w\-]+$`
+	regularFieldNameWithoutDotRegPattern = `^[\w\-#]+$`
 
 	// tableFieldsMap caches the table information retrived from database.
 	tableFieldsMap = gmap.New(true)
