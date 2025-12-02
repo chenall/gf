@@ -391,6 +391,8 @@ func bindVarToReflectValueWithInterfaceCheck(reflectValue reflect.Value, value i
 			valueBytes = b
 		} else if s, ok := value.(string); ok {
 			valueBytes = []byte(s)
+		} else {
+			valueBytes = []byte(String(value))
 		}
 
 		if len(valueBytes) > 0 {
